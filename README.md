@@ -70,11 +70,11 @@ With this revised version of your start function, you let the user choose how
 the process implementing your behavior must actually be spawned.
 
 ```erlang
-% Same as if the 'spawn` function is used.
+% Same as if the 'spawn' function is used.
 {ok, Pid} = my_module:start(no_link, foo, bar),
-% Same as if the 'spawn_link` function is used.
+% Same as if the 'spawn_link' function is used.
 {ok, Pid} = my_module:start(link, foo, bar),
-% Same as if the 'spawn_monitor` function is used.
+% Same as if the 'spawn_monitor' function is used.
 {ok, {Pid, Monitor}} = my_module:start(monitor, foo, bar),
 ```
 
@@ -92,7 +92,7 @@ The previous example is equivalent to spawning with the `spawn_opt` function
 and passing `{fullsweep_after, 2}` as option while asking for no link nor
 monitor.
 
-Of course, there are also all the spawn versions you would expect, see
+Of course, all the spawn modes you would expect are available, see
 the `spawner:spawn/x` functions. And last but not least, the spawn mode is
 `spawner:mode/0` data type.
 
@@ -110,9 +110,9 @@ start function can return with (usually) `{ok, pid()}` or
 ```erlang
 start(foo, bar) ->
   Pid = spawn(fun loop/x),
-  Pid ! {this, self()},
+  Pid ! {do_init, self()},
   receive
-    {Pid, that} ->
+    {Pid, init_done} ->
       ok
   end,
   {ok, Pid}.
@@ -129,9 +129,9 @@ done with the initialization, then using `spawner:setup/2` function.
 start(Mode, foo, bar) ->
   % We start the process with a monitor and do the initialization steps.
   {Pid, Monitor} = spawn_monitor(fun loop/x),
-  Pid ! {this, self()},
+  Pid ! {do_init, self()},
   receive
-    that ->
+    {Pid, init_done} ->
       % Initialization completed. We remove our monitor and honor the spawn
       % mode.
       Result = spawner:setup(Pid, Mode),
