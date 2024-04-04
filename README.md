@@ -1,13 +1,14 @@
-# Process Spawner
+# Spawn Mode
 
-The process spawner solves a fundamental recurrent issue in the design of your
-APIs. There are many versions of the `spawn` functions (as of OTP 27, up to 21
+The spawn mode solves a fundamental recurrent issue in the design of your APIs.
+There are many versions of the `spawn` functions (as of OTP 27, up to 21
 variants) and exposing this variety to the end user is difficult. It solves the
 problem by introducing a spawn mode which makes it easy to not tie a start
 function to a single spawn variant.
 
-The [OTPless behaviors](https://github.com/erlangsters/otpless-behaviors) are
-entirely based on this spawner API.
+The [OTPless behaviors](https://github.com/erlangsters/otpless-behaviors) make
+use of this spawn mode and is a good example that shows how it was designed to
+be used.
 
 XXX: OTP 23 has introduced the `spawn_request/x` variation. It's not supported
      yet.
@@ -54,7 +55,7 @@ unsatisfying solution that involves duplication, and which has to be replicated
 for every single process behavior modules you will ever write. It's also
 vulnerable to more potential spawn methods later introduced to the language.
 
-This is when the spawner comes into play. Instead of tying your usual start
+This is when the spawn mode comes into play. Instead of tying your usual start
 function to a given version of the spawn methods, you add a "spawn mode"
 parameter to the start function.
 
@@ -203,7 +204,7 @@ of your project.
 
 ```
 {deps, [
-  {spawner, {git, "https://github.com/erlangsters/process-spawner.git", {tag, "master"}}}
+  {spawn_mode, {git, "https://github.com/erlangsters/spawn-mode.git", {tag, "master"}}}
 ]}.
 ```
 
@@ -211,8 +212,8 @@ If you happen to use the **Erlang.mk** build system, then add the following to
 your Makefile.
 
 ```
-BUILD_DEPS = spawner
-dep_spawner = git https://github.com/erlangsters/process-spawner master
+BUILD_DEPS = spawn_mode
+dep_spawn_mode = git https://github.com/erlangsters/spawn-mode master
 ```
 
 In practice, you want to replace the branch "master" with a specific "tag" to
