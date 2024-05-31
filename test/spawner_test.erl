@@ -10,7 +10,7 @@
 -module(spawner_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% XXX: It does not test all the spawn variants.
+% XXX: It does not test all the "spawn on another node" variants.
 
 -define(SPAWN_MODE1, no_link).
 -define(SPAWN_MODE2, link).
@@ -27,7 +27,7 @@ is_linked(Pid) ->
             false
     end.
 
-spawner_test() ->
+spawner_fun_test() ->
     Root = self(),
     Fun = fun() ->
         timer:sleep(100),
@@ -89,5 +89,73 @@ spawner_test() ->
         {'OFF', Monitor6, process, Pid6, normal} ->
             ok
     end,
+
+    ok.
+
+spawner_mfa_test() ->
+    Root = self(),
+    meck:new(foo, [non_strict]),
+    meck:expect(foo, bar, fun(Arg) ->
+        timer:sleep(100),
+        Root ! {'$test_ok', Arg}
+    end),
+
+    Pid1 = spawner:spawn(?SPAWN_MODE1, foo, bar, [42]),
+    false = is_linked(Pid1),
+    ok = receive
+        {'$test_ok', 42} ->
+            ok
+    end,
+
+    Pid2 = spawner:spawn(?SPAWN_MODE2, foo, bar, [42]),
+    true = is_linked(Pid2),
+    ok = receive
+        {'$test_ok', 42} ->
+            ok
+    end,
+
+    {Pid3, Monitor3} = spawner:spawn(?SPAWN_MODE3, foo, bar, [42]),
+    false = is_linked(Pid3),
+    ok = receive
+        {'$test_ok', 42} ->
+            ok
+    end,
+    ok = receive
+        {'DOWN', Monitor3, process, Pid3, normal} ->
+            ok
+    end,
+
+    {Pid4, Monitor4} = spawner:spawn(?SPAWN_MODE4, foo, bar, [42]),
+    false = is_linked(Pid4),
+    ok = receive
+        {'$test_ok', 42} ->
+            ok
+    end,
+    ok = receive
+        {'OFF', Monitor4, process, Pid4, normal} ->
+            ok
+    end,
+
+    Pid5 = spawner:spawn(?SPAWN_MODE5, foo, bar, [42]),
+    false = is_linked(Pid5),
+    {priority, low} = process_info(Pid5, priority),
+    ok = receive
+        {'$test_ok', 42} ->
+            ok
+    end,
+
+    {Pid6, Monitor6} = spawner:spawn(?SPAWN_MODE6, foo, bar, [42]),
+    false = is_linked(Pid6),
+    {priority, low} = process_info(Pid6, priority),
+    ok = receive
+        {'$test_ok', 42} ->
+            ok
+    end,
+    ok = receive
+        {'OFF', Monitor6, process, Pid6, normal} ->
+            ok
+    end,
+
+    meck:unload(foo),
 
     ok.
