@@ -1,6 +1,8 @@
 # Spawn Mode
 
-The spawn mode solves a fundamental recurrent issue in the design of your APIs.
+The spawn mode solves a fundamental recurrent issue in the design of your
+APIs - the start functions.
+
 There are many versions of the `spawn` functions (as of OTP 27, up to 21
 variants) and exposing this variety to the end user is difficult. It solves the
 problem by introducing a spawn mode which makes it easy to not tie a start

@@ -33,21 +33,45 @@
 
 -type spawn_return() :: pid() | {pid(), reference()}.
 
+%%
+%% Spawn a process with a function.
+%%
+%% It spawns a process using the `erlang:spawn_opt/x` function. It honors the
+%% spawn mode by translating it to the right spawn options.
+%%
+%% If the mode specifies a monitor link, the monitor reference is returned
+%% alongside the process ID.
+%%
 -spec spawn(mode(), function()) -> spawn_return().
 spawn(Mode, Fun) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Fun, to_spawn_options(Link, Options)).
 
+%%
+%% Spawn a process with a function on a given node.
+%%
+%% See `spawn/2` for more information.
+%%
 -spec spawn(mode(), node(), function()) -> spawn_return().
 spawn(Mode, Node, Fun) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Node, Fun, to_spawn_options(Link, Options)).
 
+%%
+%% Spawn a process with a MFA.
+%%
+%% See `spawn/2` for more information.
+%%
 -spec spawn(mode(), module(), function(), [term()]) -> spawn_return().
 spawn(Mode, Module, Function, Args) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Module, Function, Args, to_spawn_options(Link, Options)).
 
+%%
+%% Spawn a process with a MFA on a given node.
+%%
+%% See `spawn/2` for more information.
+%%
 -spec spawn(mode(), node(), module(), function(), [term()]) -> spawn_return().
 spawn(Mode, Node, Module, Function, Args) ->
     {Link, Options} = normalize_mode(Mode),
