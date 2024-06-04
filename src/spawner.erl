@@ -12,7 +12,7 @@
 -export_type([mode/0]).
 
 -export([spawn/2, spawn/3, spawn/4, spawn/5]).
--export([setup/2]).
+-export([setup_spawn/3, setup_spawn/4, setup_spawn/5, setup_spawn/6]).
 
 -type link() ::
     no_link |
@@ -32,6 +32,7 @@
 -type mode() :: link() | {link(), [option()]}.
 
 -type spawn_return() :: pid() | {pid(), reference()}.
+-type setup_fun() :: fun((pid(), reference()) -> term()).
 
 %%
 %% Spawn a process with a function.
@@ -77,10 +78,74 @@ spawn(Mode, Node, Module, Function, Args) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Node, Module, Function, Args, to_spawn_options(Link, Options)).
 
--spec setup(pid(), mode()) -> spawn_return().
-setup(_Pid, _Mode) ->
-    % XXX: To be implemented.
-    ok.
+%%
+%% Spawn an initialized process with a function.
+%%
+%% It spawns a process using the `erlang:spawn_opt/x` function and initializes
+%% it using a setup function. It does the spawning with a temporary monitor
+%% which allows you to catch any crash that might occur during the setup phase.
+%% By the time this function returns, the spawn mode is honored.
+%%
+%% The process will be spawned using a monitor version of the spawn mode (in
+%% order to preserve the process options that cannot be changed later). Then
+%% the setup function will be called with the process ID and the monitor
+%% reference. Whatever the setup function returns is returned by this function
+%% after the process was adjusted according to the spawn mode.
+%%
+%% Note that you should provide a locking mechanism as the process should not
+%% crash between the time the setup function returns and this function returns.
+%%
+-spec setup_spawn(mode(), function(), setup_fun()) ->
+    {setup, term(), undefined | spawn_return()}.
+setup_spawn(Mode1, Fun, Setup) ->
+    spawn_with_setup(
+        Mode1,
+        fun(Mode2) -> spawner:spawn(Mode2, Fun) end,
+        Setup
+    ).
+
+%%
+%% Spawn an initialized process with a function on a given node.
+%%
+%% See `setup_spawn/3` for more information.
+%%
+-spec setup_spawn(mode(), node(), function(), setup_fun()) ->
+    {setup, term(), undefined | spawn_return()}.
+setup_spawn(Mode1, Node, Fun, Setup) ->
+    spawn_with_setup(
+        Mode1,
+        fun(Mode2) -> spawner:spawn(Mode2, Node, Fun) end,
+        Setup
+    ).
+
+%%
+%% Spawn an initialized process with a MFA.
+%%
+%% See `setup_spawn/3` for more information.
+%%
+-spec setup_spawn(mode(), module(), function(), [term()], setup_fun()) ->
+    {setup, term(), undefined | spawn_return()}.
+setup_spawn(Mode1, Module, Function, Args, Setup) ->
+    spawn_with_setup(
+        Mode1,
+        fun(Mode2) -> spawner:spawn(Mode2, Module, Function, Args) end,
+        Setup
+    ).
+
+%%
+%% Spawn an initialized process with a MFA on a given node.
+%%
+%% See `setup_spawn/3` for more information.
+%%
+-spec setup_spawn(mode(), node(), module(), function(), [term()], setup_fun()) ->
+    {setup, term(), undefined | spawn_return()}.
+setup_spawn(Mode1, Node, Module, Function, Args, Setup) ->
+    spawn_with_setup(
+        Mode1,
+        fun(Mode2) -> spawner:spawn(Mode2, Node, Module, Function, Args) end,
+        Setup
+    ).
+
 
 -spec is_process_option(erlang:monitor_option() | option()) -> boolean().
 is_process_option({Name, _}) ->
@@ -132,8 +197,47 @@ to_spawn_options(Link, Options) ->
             [{monitor, MonitorOptions}]
     end ++ Options.
 
--ifdef(TEST).
+-spec spawn_with_setup(mode(), fun((mode()) -> spawn_return()), setup_fun()) ->
+    {setup, term(), spawn_return()}.
+spawn_with_setup(Mode, Spawn, Setup) ->
+    % We cannot change the process options later on and therefore the strategy
+    % is to make a "monitor variant" of the passed mode, then later we adjust
+    % accordingly.
+    {Link, Options} = normalize_mode(Mode),
+    MonitorMode = {monitor, Options},
 
+    % Spawn the process and execute the setup function.
+    {Pid, Monitor1} = Spawn(MonitorMode),
+    Value = Setup(Pid, Monitor1),
+
+    % The setup function does not have to report whether the process has
+    % terminated or not.
+    case erlang:is_process_alive(Pid) of
+        true ->
+            % Remove the monitor and do the adjustments to honor the initial
+            % spawn mode.
+            erlang:demonitor(Monitor1),
+            Return = case Link of
+                no_link ->
+                    Pid;
+                link ->
+                    link(Pid),
+                    Pid;
+                monitor ->
+                    Monitor2 = erlang:monitor(process, Pid),
+                    {Pid, Monitor2};
+                {monitor, MonitorOptions} ->
+                    Monitor2 = erlang:monitor(process, Pid, MonitorOptions),
+                    {Pid, Monitor2}
+            end,
+            {setup, Value, Return};
+        false ->
+            % No adjustment to be made.
+            erlang:demonitor(Monitor1),
+            {setup, Value, undefined}
+    end.
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 is_process_option_test() ->

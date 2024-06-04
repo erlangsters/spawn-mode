@@ -101,18 +101,22 @@ the `spawner:spawn/x` functions. And last but not least, the spawn mode is
 
 ## Dealing with initializations
 
-Next to the `spawner:spawn/x` functions, you will notice an additional
-`spawner:setup/2` function. It's there to help when there are some
-initialization steps to be done **before** the resulting Pid can be returned.
+Next to the `spawner:spawn/x` functions, you will notice their
+`spawner:setup_spawn/x` counterparts. They allow to safely initialize the
+process **before** it can be returned.
 
-It's frequent that right after spawning a new process, it will follow an
-initialization sequence (which can go wrong too!) and once completed, the
-start function can return with (usually) `{ok, pid()}` or
-`{error, Reason :: term()}`.
+Ultimately, this library should only be about the spawn mode and wrappers
+around the built-in spawn functions that honor them. So why are we talking
+about initialization ?
+
+Well, it's frequent that right after spawning a new process, it will follow an
+initialization sequence, and only once completed, the start function can
+return.
 
 ```erlang
 start(foo, bar) ->
   Pid = spawn(fun loop/x),
+  % Do the initialization steps before returning.
   Pid ! {do_init, self()},
   receive
     {Pid, init_done} ->
@@ -121,36 +125,54 @@ start(foo, bar) ->
   {ok, Pid}.
 ```
 
-Because the freshly spawned process can crash in the middle of the
-initialization steps, the previous snippet is no good code at all. The
-solution is to use `spawn_monitor` instead and do the initialization steps.
-
-How do we honor our "spawn mode" then ? By removing the monitor after we're
-done with the initialization, then using `spawner:setup/2` function.
+However, because the early sequence can go wrong, the implementation
+of the start function is forced to spawn the process with a monitor.
 
 ```erlang
-start(Mode, foo, bar) ->
-  % We start the process with a monitor and do the initialization steps.
+start(foo, bar) ->
+  % We start the process with a monitor instead, then we do the initialization
+  % steps.
   {Pid, Monitor} = spawn_monitor(fun loop/x),
   Pid ! {do_init, self()},
   receive
     {Pid, init_done} ->
-      % Initialization completed. We remove our monitor and honor the spawn
-      % mode.
-      Result = spawner:setup(Pid, Mode),
-      erlang:demonitor(Monitor),
-      {ok, Result};
+      % Initialization was successful, the monitor can be removed.
+      demonitor(Monitor),
+      {ok, Pid};
     {'DOWN', Monitor, process, Pid, Reason} ->
-      % Initialization went wrong, we return an error.
+      % Initialization went wrong, we return an error instead.
       {error, Reason}
   end.
 ```
 
-XXX: The concept of 'setup' needs to be reworked because it's not 100%
-     fail-safe.
+How can we apply the same concept using the spawn mode then? With the
+`spawner:setup_spawn/x` functions! You encapsulate the initialization part of
+your code in a setup function, then let `setup_spawn/x` function do the rest.
 
-The above snippet is just  to illustrate a point and the use of the
-`spawner:setup/2` function.
+```erlang
+start(Mode, foo, bar) ->
+  % The same initialization steps but in a function.
+  Setup = fun(Pid, Monitor) ->
+    Pid ! {do_init, self()},
+    receive
+      {Pid, init_done} ->
+        ok;
+      {'DOWN', Monitor, process, Pid, Reason} ->
+        {not_ok, Reason}
+    end
+  end,
+  % Spawning the process and initializing it.
+  case spawner:spawn_setup(Mode, fun loop/x, Setup) of
+    {setup, ok, Return} ->
+      {ok, Return};
+    {setup, {not_ok, Reason}, undefined} ->
+      {error, Reason}
+  end.
+```
+
+The provided setup function is passed the monitor which allows you to safely
+initialize the process. Then by the time the start function returns, the spawn
+mode is guaranteed to be honored.
 
 ## Bits of history
 
