@@ -1,0 +1,27 @@
+name: Library
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        erlang: [24, 25]
+
+    runs-on: ubuntu-latest
+    container:
+      image: erlang:${{ matrix.erlang }}
+
+    steps:
+      - name: Get the source code
+        uses: actions/checkout@v4
+
+      - name: Build the library
+        run: make
+
+      - name: Run the regression tests
+        run: make eunit
