@@ -8,9 +8,11 @@ variants) and exposing this variety to the end user is difficult. It solves the
 problem by introducing a spawn mode which makes it easy to not tie a start
 function to a single spawn variant.
 
-The [OTPless behaviors](https://github.com/erlangsters/otpless-behaviors) make
-use of this spawn mode and is a good example that shows how it was designed to
-be used.
+> The re-written OTP behaviors ([gen_server](https://github.com/erlangsters/otpless-worker),
+[supervisor](https://github.com/erlangsters/otpless-orchestrator),
+[gen_statem](https://github.com/erlangsters/otpless-reactor)) for OTPless
+Erlang make use of this spawn mode. They are great example that
+shows how it was designed to be used.
 
 XXX: OTP 23 has introduced the `spawn_request/x` variation. It's not supported
      yet.
