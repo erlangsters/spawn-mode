@@ -5,6 +5,9 @@ on:
     branches: ["master"]
   pull_request:
     branches: ["master"]
+  # Run the workflow every month.
+  schedule:
+    - cron: '0 0 1 * *'
 
 jobs:
   build:
