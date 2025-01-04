@@ -17,8 +17,8 @@ shows how it was designed to be used.
 XXX: OTP 23 has introduced the `spawn_request/x` variation. It's not supported
      yet.
 
-Written by Jonathan De Wachter (dewachter.jonathan@gmail.com) and released
-under the MIT license.
+Written by the Erlangsters [community](https://www.erlangsters.org/) and
+released under the MIT [license](/https://opensource.org/license/mit).
 
 ## Getting started
 
