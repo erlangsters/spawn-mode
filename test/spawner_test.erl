@@ -1,5 +1,5 @@
 %%
-%% Copyright (c) 2024, Byteplug LLC.
+%% Copyright (c) 2025, Byteplug LLC.
 %%
 %% This source file is part of a project made by the Erlangsters community and
 %% is released under the MIT license. Please refer to the LICENSE.txt file that
