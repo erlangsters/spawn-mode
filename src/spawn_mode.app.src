@@ -1,9 +1,12 @@
-{application, 'spawn_mode', [
+{application, spawn_mode, [
 	{description, "An Erlang process spawner API that solves a design fundamental issue."},
-	{vsn, "0.1.0"},
-	{modules, ['spawner']},
+	{vsn, "0.0.1"},
+	{modules, [spawner]},
 	{registered, []},
-	{applications, [kernel,stdlib]},
+	{applications, [
+        kernel,
+        stdlib
+    ]},
 	{optional_applications, []},
 	{env, []}
 ]}.
