@@ -1,5 +1,12 @@
 # Spawn Mode
 
+[![Erlangsters Repository](https://img.shields.io/badge/erlangsters-spawn--mode-%23a90432)](https://github.com/erlangsters/spawn-mode)
+![Supported Erlang/OTP Versions](https://img.shields.io/badge/erlang%2Fotp-27%7C28-%23a90432)
+![Current Version](https://img.shields.io/badge/version-0.0.1-%23354052)
+![License](https://img.shields.io/github/license/erlangsters/spawn-mode)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/erlangsters/spawn-mode/workflow.yml)](https://github.com/erlangsters/spawn-mode/actions/workflows/workflow.yml)
+[![Documentation Link](https://img.shields.io/badge/documentation-available-yellow)](http://erlangsters.github.io/spawn-mode/)
+
 The spawn mode solves a fundamental recurrent issue in the design of your
 APIs - the start functions.
 
