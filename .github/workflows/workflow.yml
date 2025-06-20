@@ -1,4 +1,4 @@
-name: Library
+name: library
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        erlang: [25, 26, 27]
+        erlang: [27, 28]
 
     runs-on: ubuntu-latest
     container:
