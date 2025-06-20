@@ -8,18 +8,25 @@
 %% Written by Jonathan De Wachter <jonathan.dewachter@byteplug.io>, February 2024
 %%
 -module(spawner).
+-moduledoc """
+Spawner API.
+
+It provides a simple API to spawn processes in a specific mode.
+""".
 
 -export_type([mode/0]).
 
 -export([spawn/2, spawn/3, spawn/4, spawn/5]).
 -export([setup_spawn/3, setup_spawn/4, setup_spawn/5, setup_spawn/6]).
 
+-doc "The link modes.".
 -type link() ::
     no_link |
     link |
     monitor |
     {monitor, [erlang:monitor_option()]}
 .
+-doc "The link options.".
 -type option() ::
     {priority, Level :: erlang:priority_level()} |
     {fullsweep_after, Number :: pos_integer()} |
@@ -29,72 +36,75 @@
     {message_queue_data, MQD :: erlang:message_queue_data()} |
     {async_dist, Enabled :: boolean()}
 .
+-doc "The spawn modes.".
 -type mode() :: link() | {link(), [option()]}.
 
+-doc "The return value of the spawn functions.".
 -type spawn_return() :: pid() | {pid(), reference()}.
+-doc "A function that sets up a spawned process.".
 -type setup_fun() :: fun((pid(), reference()) -> term()).
 
-%%
-%% Spawn a process with a function.
-%%
-%% It spawns a process using the `erlang:spawn_opt/x` function. It honors the
-%% spawn mode by translating it to the right spawn options.
-%%
-%% If the mode specifies a monitor link, the monitor reference is returned
-%% alongside the process ID.
-%%
+-doc """
+Spawn a process with a function.
+
+It spawns a process using the `erlang:spawn_opt/x` function. It honors the
+spawn mode by translating it to the right spawn options.
+
+If the mode specifies a monitor link, the monitor reference is returned
+alongside the process ID.
+""".
 -spec spawn(mode(), function()) -> spawn_return().
 spawn(Mode, Fun) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Fun, to_spawn_options(Link, Options)).
 
-%%
-%% Spawn a process with a function on a given node.
-%%
-%% See `spawn/2` for more information.
-%%
+-doc """
+Spawn a process with a function on a given node.
+
+See `spawn/2` for more information.
+""".
 -spec spawn(mode(), node(), function()) -> spawn_return().
 spawn(Mode, Node, Fun) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Node, Fun, to_spawn_options(Link, Options)).
 
-%%
-%% Spawn a process with a MFA.
-%%
-%% See `spawn/2` for more information.
-%%
+-doc """
+Spawn a process with a MFA.
+
+See `spawn/2` for more information.
+""".
 -spec spawn(mode(), module(), function(), [term()]) -> spawn_return().
 spawn(Mode, Module, Function, Args) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Module, Function, Args, to_spawn_options(Link, Options)).
 
-%%
-%% Spawn a process with a MFA on a given node.
-%%
-%% See `spawn/2` for more information.
-%%
+-doc """
+Spawn a process with a MFA on a given node.
+
+See `spawn/2` for more information.
+""".
 -spec spawn(mode(), node(), module(), function(), [term()]) -> spawn_return().
 spawn(Mode, Node, Module, Function, Args) ->
     {Link, Options} = normalize_mode(Mode),
     spawn_opt(Node, Module, Function, Args, to_spawn_options(Link, Options)).
 
-%%
-%% Spawn an initialized process with a function.
-%%
-%% It spawns a process using the `erlang:spawn_opt/x` function and initializes
-%% it using a setup function. It does the spawning with a temporary monitor
-%% which allows you to catch any crash that might occur during the setup phase.
-%% By the time this function returns, the spawn mode is honored.
-%%
-%% The process will be spawned using a monitor version of the spawn mode (in
-%% order to preserve the process options that cannot be changed later). Then
-%% the setup function will be called with the process ID and the monitor
-%% reference. Whatever the setup function returns is returned by this function
-%% after the process was adjusted according to the spawn mode.
-%%
-%% Note that you should provide a locking mechanism as the process should not
-%% crash between the time the setup function returns and this function returns.
-%%
+-doc """
+Spawn an initialized process with a function.
+
+It spawns a process using the `erlang:spawn_opt/x` function and initializes
+it using a setup function. It does the spawning with a temporary monitor
+which allows you to catch any crash that might occur during the setup phase.
+By the time this function returns, the spawn mode is honored.
+
+The process will be spawned using a monitor version of the spawn mode (in
+order to preserve the process options that cannot be changed later). Then
+the setup function will be called with the process ID and the monitor
+reference. Whatever the setup function returns is returned by this function
+after the process was adjusted according to the spawn mode.
+
+Note that you should provide a locking mechanism as the process should not
+crash between the time the setup function returns and this function returns.
+""".
 -spec setup_spawn(mode(), function(), setup_fun()) ->
     {setup, term(), undefined | spawn_return()}.
 setup_spawn(Mode1, Fun, Setup) ->
@@ -104,11 +114,11 @@ setup_spawn(Mode1, Fun, Setup) ->
         Setup
     ).
 
-%%
-%% Spawn an initialized process with a function on a given node.
-%%
-%% See `setup_spawn/3` for more information.
-%%
+-doc """
+Spawn an initialized process with a function on a given node.
+
+See `setup_spawn/3` for more information.
+""".
 -spec setup_spawn(mode(), node(), function(), setup_fun()) ->
     {setup, term(), undefined | spawn_return()}.
 setup_spawn(Mode1, Node, Fun, Setup) ->
@@ -118,11 +128,11 @@ setup_spawn(Mode1, Node, Fun, Setup) ->
         Setup
     ).
 
-%%
-%% Spawn an initialized process with a MFA.
-%%
-%% See `setup_spawn/3` for more information.
-%%
+-doc """
+Spawn an initialized process with a MFA.
+
+See `setup_spawn/3` for more information.
+""".
 -spec setup_spawn(mode(), module(), function(), [term()], setup_fun()) ->
     {setup, term(), undefined | spawn_return()}.
 setup_spawn(Mode1, Module, Function, Args, Setup) ->
@@ -132,11 +142,11 @@ setup_spawn(Mode1, Module, Function, Args, Setup) ->
         Setup
     ).
 
-%%
-%% Spawn an initialized process with a MFA on a given node.
-%%
-%% See `setup_spawn/3` for more information.
-%%
+-doc """
+Spawn an initialized process with a MFA on a given node.
+
+See `setup_spawn/3` for more information.
+""".
 -spec setup_spawn(mode(), node(), module(), function(), [term()], setup_fun()) ->
     {setup, term(), undefined | spawn_return()}.
 setup_spawn(Mode1, Node, Module, Function, Args, Setup) ->
@@ -145,7 +155,6 @@ setup_spawn(Mode1, Node, Module, Function, Args, Setup) ->
         fun(Mode2) -> spawner:spawn(Mode2, Node, Module, Function, Args) end,
         Setup
     ).
-
 
 -spec is_process_option(erlang:monitor_option() | option()) -> boolean().
 is_process_option({Name, _}) ->
